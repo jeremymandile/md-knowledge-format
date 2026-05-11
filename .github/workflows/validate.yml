@@ -1,0 +1,48 @@
+name: Validate knowledge files
+
+on:
+  push:
+    paths:
+      - "**.lesson.md"
+      - "**.lessons.md"
+      - "tools/lesson_tool.py"
+      - ".github/workflows/validate.yml"
+  pull_request:
+    paths:
+      - "**.lesson.md"
+      - "**.lessons.md"
+      - "tools/lesson_tool.py"
+      - ".github/workflows/validate.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install optional dependencies
+        run: pip install pyyaml
+
+      - name: Validate all LESSON.md files
+        run: |
+          set -e
+          FAILED=0
+          FILES=$(find . -type f -name "*.lesson.md" | sort)
+          if [ -z "$FILES" ]; then
+            echo "No .lesson.md files found."
+          fi
+          for file in $FILES; do
+            echo "::group::$file"
+            python tools/lesson_tool.py validate "$file" || FAILED=1
+            echo "::endgroup::"
+          done
+          if [ $FAILED -eq 1 ]; then
+            echo "::error::One or more files failed validation."
+            exit 1
+          fi
+          echo "All files passed."
