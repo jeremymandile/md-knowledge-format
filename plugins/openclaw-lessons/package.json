@@ -1,12 +1,12 @@
 {
   "name": "@jeremymandile/openclaw-lessons",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OpenClaw plugins for LESSONS.md — guard, reporter, and digest hooks that give AI agents shared institutional memory.",
   "license": "MIT",
   "author": "Jeremy Mandile",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jeremymandile/md-knowledge-format.git",
+    "url": "git+https://github.com/jeremymandile/md-knowledge-format.git",
     "directory": "plugins/openclaw-lessons"
   },
   "keywords": [
