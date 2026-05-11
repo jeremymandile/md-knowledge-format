@@ -1,0 +1,38 @@
+{
+  "name": "@md-knowledge-format/openclaw-lessons",
+  "version": "1.0.0",
+  "description": "OpenClaw plugins for LESSONS.md — guard, reporter, and digest hooks that give AI agents shared institutional memory.",
+  "license": "MIT",
+  "author": "Jeremy Mandile",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeremymandile/md-knowledge-format.git",
+    "directory": "plugins/openclaw-lessons"
+  },
+  "keywords": [
+    "openclaw",
+    "ai-agents",
+    "lessons-learned",
+    "agent-memory",
+    "institutional-memory",
+    "markdown",
+    "self-correcting-agents"
+  ],
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "lesson_guard.py",
+    "lesson_reporter.py",
+    "lesson_digest.py",
+    "README.md"
+  ],
+  "scripts": {
+    "guard": "python lesson_guard.py",
+    "reporter": "python lesson_reporter.py",
+    "digest": "python lesson_digest.py"
+  },
+  "engines": {
+    "node": ">=16",
+    "python": ">=3.6"
+  }
+}

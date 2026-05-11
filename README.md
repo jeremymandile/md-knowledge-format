@@ -80,7 +80,9 @@ Starter template: [`examples/starter.lessons.md`](examples/starter.lessons.md)
 
 ## Tooling
 
-[`tools/lesson_tool.py`](tools/lesson_tool.py) is a single-file Python 3.6+ CLI for both formats. It requires no mandatory dependencies (PyYAML and markdown are optional enhancements).
+### CLI — `lesson_tool.py`
+
+[`tools/lesson_tool.py`](tools/lesson_tool.py) is a single-file Python 3.6+ CLI for both formats. Zero mandatory dependencies.
 
 ```bash
 # Create a new LESSON.md interactively
@@ -101,7 +103,44 @@ python tools/lesson_tool.py html my-lesson.lesson.md > lesson.html
 python tools/lesson_tool.py init-memory LESSONS.md
 ```
 
-**Optional dependencies for enhanced output:**
+### Docker
+
+No Python on the host? Run the CLI in a container:
+
+```bash
+docker build -t md-knowledge-format tools/
+docker run --rm -v $(pwd):/workspace md-knowledge-format validate my-lesson.lesson.md
+docker run --rm -v $(pwd):/workspace md-knowledge-format html my-lesson.lesson.md > lesson.html
+docker run --rm -v $(pwd):/workspace md-knowledge-format init-memory LESSONS.md
+```
+
+### OpenClaw Plugins — One-Click Install
+
+Give your OpenClaw agent swarm shared institutional memory in one command:
+
+```bash
+npm install @md-knowledge-format/openclaw-lessons
+```
+
+Then add to `openclaw.yaml`:
+
+```yaml
+hooks:
+  pre_tool_call:
+    - name: lesson-guard
+      command: "python ./node_modules/@md-knowledge-format/openclaw-lessons/lesson_guard.py"
+  post_failure:
+    - name: lesson-reporter
+      command: "python ./node_modules/@md-knowledge-format/openclaw-lessons/lesson_reporter.py"
+  scheduled:
+    - name: lesson-digest
+      command: "python ./node_modules/@md-knowledge-format/openclaw-lessons/lesson_digest.py"
+      schedule: "0 9 * * 1"
+```
+
+**What you get:** agents auto-abort dangerous actions, mistakes are captured and shared fleet-wide, and weekly cleanup keeps the memory file lean. [Plugin docs →](plugins/openclaw-lessons/README.md)
+
+**Optional Python dependencies for enhanced output:**
 
 ```bash
 pip install pyyaml markdown
