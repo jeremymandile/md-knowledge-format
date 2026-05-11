@@ -1,5 +1,5 @@
 {
-  "name": "@md-knowledge-format/openclaw-lessons",
+  "name": "@jeremymandile/openclaw-lessons",
   "version": "1.0.0",
   "description": "OpenClaw plugins for LESSONS.md — guard, reporter, and digest hooks that give AI agents shared institutional memory.",
   "license": "MIT",

@@ -119,7 +119,7 @@ docker run --rm -v $(pwd):/workspace md-knowledge-format init-memory LESSONS.md
 Give your OpenClaw agent swarm shared institutional memory in one command:
 
 ```bash
-npm install @md-knowledge-format/openclaw-lessons
+npm install @jeremymandile/openclaw-lessons
 ```
 
 Then add to `openclaw.yaml`:
@@ -128,13 +128,13 @@ Then add to `openclaw.yaml`:
 hooks:
   pre_tool_call:
     - name: lesson-guard
-      command: "python ./node_modules/@md-knowledge-format/openclaw-lessons/lesson_guard.py"
+      command: "python ./node_modules/@jeremymandile/openclaw-lessons/lesson_guard.py"
   post_failure:
     - name: lesson-reporter
-      command: "python ./node_modules/@md-knowledge-format/openclaw-lessons/lesson_reporter.py"
+      command: "python ./node_modules/@jeremymandile/openclaw-lessons/lesson_reporter.py"
   scheduled:
     - name: lesson-digest
-      command: "python ./node_modules/@md-knowledge-format/openclaw-lessons/lesson_digest.py"
+      command: "python ./node_modules/@jeremymandile/openclaw-lessons/lesson_digest.py"
       schedule: "0 9 * * 1"
 ```
 
