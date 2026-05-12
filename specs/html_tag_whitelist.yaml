@@ -1,0 +1,224 @@
+# html_tag_whitelist.yaml
+# md-knowledge-format :: Renderer Specification v1.0
+# https://github.com/jeremymandile/md-knowledge-format/blob/master/docs/renderer_spec.md
+#
+# Standalone, human-auditable allowlist for agent-generated HTML.
+# Used by tools/csp_sanitizer.py and referenced by specs/renderer_spec.md (Section 3.1).
+#
+# HOW TO READ:
+#   Each entry under 'tags' defines an allowed HTML element.
+#   'global_attrs' lists attributes allowed on ALL tags.
+#   'blocked_tags' are elements stripped completely (text content may be preserved via unwrap).
+#   'blocked_attr_prefixes' are attribute name prefixes stripped unconditionally.
+#   'blocked_url_schemes' are URL schemes stripped from href/src/action attributes.
+#
+# TO EXTEND:
+#   Add a new tag under 'tags' with its allowed_attrs list.
+#   Add a note explaining the use case and any security consideration.
+#   Do NOT add 'script', 'iframe', or any executable context tag.
+#
+# AUDIT LOG:
+#   2026-05-12  v1.0  Initial release aligned with Renderer Specification v1.0
+
+version: "1.0"
+created: "2026-05-12"
+maintainer: "Jeremy Mandile (md-knowledge-format)"
+spec_ref: "docs/renderer_spec.md"
+
+# ---------------------------------------------------------------------------
+# Tags allowed in agent-generated HTML
+# ---------------------------------------------------------------------------
+
+tags:
+
+  # --- Layout & containers ---
+  div:
+    allowed_attrs: []  # only global_attrs apply
+    notes: "Generic container. Prefer semantic elements where possible."
+
+  details:
+    allowed_attrs: [open]
+    notes: "Expandable disclosure widget. Safe native alternative to JS accordions."
+
+  summary:
+    allowed_attrs: []
+    notes: "Label for <details>. Always paired with <details>."
+
+  # --- Tables ---
+  table:
+    allowed_attrs: []
+    notes: "Tabular data only. Do not use for layout."
+
+  thead:
+    allowed_attrs: []
+
+  tbody:
+    allowed_attrs: []
+
+  tr:
+    allowed_attrs: []
+
+  th:
+    allowed_attrs: []
+
+  td:
+    allowed_attrs: []
+
+  # --- SVG ---
+  svg:
+    allowed_attrs: [viewBox, width, height, xmlns]
+    notes: >
+      Inline SVG for diagrams and flowcharts. Ensure no script elements or
+      event handlers exist within SVG children. Sanitizer must recurse into
+      SVG child nodes.
+
+  # --- Text & headings ---
+  p:
+    allowed_attrs: []
+
+  h1:
+    allowed_attrs: []
+
+  h2:
+    allowed_attrs: []
+
+  h3:
+    allowed_attrs: []
+
+  h4:
+    allowed_attrs: []
+
+  h5:
+    allowed_attrs: []
+
+  h6:
+    allowed_attrs: []
+
+  strong:
+    allowed_attrs: []
+
+  em:
+    allowed_attrs: []
+
+  span:
+    allowed_attrs: []
+    notes: "For inline styling hooks. style attribute is stripped; use class instead."
+
+  code:
+    allowed_attrs: []
+
+  pre:
+    allowed_attrs: []
+
+  # --- Lists ---
+  ul:
+    allowed_attrs: []
+
+  ol:
+    allowed_attrs: []
+
+  li:
+    allowed_attrs: []
+
+  # --- Media ---
+  img:
+    allowed_attrs: [src, alt]
+    notes: >
+      src must not start with javascript: or vbscript:.
+      data: URIs are permitted for inline images (PNG, JPEG, GIF, SVG, WebP only).
+      Sanitizer must validate MIME type prefix in data: URIs.
+
+  # --- Links ---
+  a:
+    allowed_attrs: [href, title]
+    notes: >
+      href must not use javascript:, vbscript:, or data:text/html schemes.
+      Opens in same tab by default; do not add target=_blank without rel=noopener.
+
+  # --- Form controls (read-only / display only) ---
+  input:
+    allowed_attrs: [type, value, min, max, step, disabled]
+    notes: >
+      Only type=range is intended for interactive use (sliders).
+      All other input types are display-only. disabled should be set by renderer.
+      type=hidden, type=submit, type=password are implicitly disallowed by the
+      rendering context (no form submission expected).
+
+  # --- Structural ---
+  br:
+    allowed_attrs: []
+
+  hr:
+    allowed_attrs: []
+
+# ---------------------------------------------------------------------------
+# Attributes allowed on ALL tags (in addition to per-tag lists above)
+# ---------------------------------------------------------------------------
+
+global_attrs:
+  - class
+  - id
+
+# ---------------------------------------------------------------------------
+# Tags stripped completely (element AND all its children removed)
+# ---------------------------------------------------------------------------
+
+blocked_tags:
+  - script
+  - style       # Stripped from input; renderer re-injects with nonce if needed
+  - iframe
+  - object
+  - embed
+  - base        # Prevents base-URL hijacking
+  - link        # Prevents stylesheet injection
+  - meta        # Prevents redirect/refresh injection
+  - form        # No form submission in agent outputs
+  - button      # No submission controls (use <input disabled> for display)
+  - select
+  - textarea
+  - template    # HTML template elements can be abused for injection
+  - slot
+
+# ---------------------------------------------------------------------------
+# Attribute name prefixes stripped from ALL tags unconditionally
+# ---------------------------------------------------------------------------
+
+blocked_attr_prefixes:
+  - "on"        # All event handlers (onclick, onerror, onload, ...)
+  - "style"     # Inline styles (use class + server-side nonce-scoped CSS)
+  - "data-"     # Custom data attributes (allowed if explicitly added to global_attrs)
+  - "aria-"     # Allowed selectively; add explicitly if needed for accessibility
+
+# Exceptions: re-allow specific aria-* or data-* by adding them to global_attrs above.
+
+# ---------------------------------------------------------------------------
+# URL schemes blocked in href / src / action attributes
+# ---------------------------------------------------------------------------
+
+blocked_url_schemes:
+  - "javascript:"
+  - "vbscript:"
+  - "data:text/html"   # data: images are OK; data:text/html executes scripts
+  - "data:application" # Block all data: non-image MIME types
+
+# ---------------------------------------------------------------------------
+# Security notes
+# ---------------------------------------------------------------------------
+
+security_notes:
+  csp: >
+    All sanitized HTML must be served with a Content-Security-Policy header
+    using a per-request cryptographic nonce for style-src. Never use
+    'unsafe-inline' or 'unsafe-eval'. See tools/csp_sanitizer.py.
+
+  nonce: >
+    If the renderer needs to inject a <style> block for colour-coded diffs or
+    layout, it must generate a fresh nonce per response, inject it into the
+    <style> tag, and include it in the CSP header. The sanitizer strips all
+    <style> blocks from agent input; only renderer-injected styles with a valid
+    nonce are served to the browser.
+
+  svelte_or_react: >
+    If rendering inside a component framework, ensure agent HTML is injected via
+    a sanitized dangerouslySetInnerHTML equivalent — never via eval or
+    document.write. Prefer a sandboxed <iframe srcdoc="..."> for full isolation.
