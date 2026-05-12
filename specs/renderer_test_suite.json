@@ -1,0 +1,257 @@
+{
+  "meta": {
+    "spec_version": "1.0",
+    "generated": "2026-05-12",
+    "purpose": "Validate renderer_decision_schema.json and csp_sanitizer.py behavior",
+    "harness": "tests/test_renderer.py"
+  },
+  "suites": [
+    {
+      "name": "schema_validation",
+      "description": "Test JSON Schema routing logic for output format decisions",
+      "schema_path": "specs/renderer_decision_schema.json",
+      "cases": [
+        {
+          "id": "SCH-001",
+          "description": "Human recipient, complexity >= 6 -> html",
+          "instance": {
+            "recipient": "human",
+            "complexity_score": 6,
+            "requires_interactivity": false,
+            "rendering_constraints": { "max_token_budget": 1000 },
+            "recommended_format": "html"
+          },
+          "expected_valid": true,
+          "assertions": { "recommended_format": "html" }
+        },
+        {
+          "id": "SCH-002",
+          "description": "Human recipient, complexity < 6, no interactivity -> markdown (fallback)",
+          "instance": {
+            "recipient": "human",
+            "complexity_score": 3,
+            "requires_interactivity": false,
+            "rendering_constraints": { "max_token_budget": 1000 },
+            "recommended_format": "markdown"
+          },
+          "expected_valid": true,
+          "assertions": { "recommended_format": "markdown" }
+        },
+        {
+          "id": "SCH-003",
+          "description": "Agent recipient -> markdown regardless of complexity",
+          "instance": {
+            "recipient": "agent",
+            "complexity_score": 9,
+            "requires_interactivity": false,
+            "rendering_constraints": { "max_token_budget": 1000 },
+            "recommended_format": "markdown"
+          },
+          "expected_valid": true,
+          "assertions": { "recommended_format": "markdown" }
+        },
+        {
+          "id": "SCH-004",
+          "description": "requires_interactivity=true -> html even at low complexity",
+          "instance": {
+            "recipient": "human",
+            "complexity_score": 2,
+            "requires_interactivity": true,
+            "rendering_constraints": { "max_token_budget": 1000 },
+            "recommended_format": "html"
+          },
+          "expected_valid": true,
+          "assertions": { "recommended_format": "html" }
+        },
+        {
+          "id": "SCH-005",
+          "description": "CONFLICT: agent + requires_interactivity=true -> invalid (markdown vs html)",
+          "instance": {
+            "recipient": "agent",
+            "complexity_score": 5,
+            "requires_interactivity": true,
+            "rendering_constraints": { "max_token_budget": 1000 },
+            "recommended_format": "html"
+          },
+          "expected_valid": false,
+          "expected_error": "conflicting constraints on recommended_format"
+        },
+        {
+          "id": "SCH-006",
+          "description": "Missing required field rendering_constraints -> invalid",
+          "instance": {
+            "recipient": "human",
+            "complexity_score": 7,
+            "requires_interactivity": false,
+            "recommended_format": "html"
+          },
+          "expected_valid": false
+        },
+        {
+          "id": "SCH-007",
+          "description": "complexity_score out of bounds (11) -> invalid",
+          "instance": {
+            "recipient": "human",
+            "complexity_score": 11,
+            "requires_interactivity": false,
+            "rendering_constraints": { "max_token_budget": 1000 },
+            "recommended_format": "html"
+          },
+          "expected_valid": false
+        },
+        {
+          "id": "SCH-008",
+          "description": "complexity_score out of bounds (0) -> invalid",
+          "instance": {
+            "recipient": "human",
+            "complexity_score": 0,
+            "requires_interactivity": false,
+            "rendering_constraints": { "max_token_budget": 1000 },
+            "recommended_format": "markdown"
+          },
+          "expected_valid": false
+        },
+        {
+          "id": "SCH-009",
+          "description": "Token budget enforcement: application-level fallback noted in schema (not enforced by schema)",
+          "instance": {
+            "recipient": "human",
+            "complexity_score": 7,
+            "requires_interactivity": false,
+            "rendering_constraints": { "max_token_budget": 300 },
+            "recommended_format": "html"
+          },
+          "expected_valid": true,
+          "application_fallback": "markdown",
+          "note": "Schema validates; pipeline enforces budget fallback at runtime"
+        },
+        {
+          "id": "SCH-010",
+          "description": "System recipient, low complexity -> markdown",
+          "instance": {
+            "recipient": "system",
+            "complexity_score": 2,
+            "requires_interactivity": false,
+            "rendering_constraints": { "max_token_budget": 500 },
+            "recommended_format": "markdown"
+          },
+          "expected_valid": true,
+          "assertions": { "recommended_format": "markdown" }
+        }
+      ]
+    },
+    {
+      "name": "sanitizer_html",
+      "description": "Test CSP sanitizer middleware against XSS vectors and allowlist enforcement",
+      "middleware": "tools/csp_sanitizer.py",
+      "cases": [
+        {
+          "id": "SAN-001",
+          "description": "Plain safe HTML passes through",
+          "input": "<div class='info'><p>Hello world</p></div>",
+          "must_contain": ["Hello world"],
+          "must_not_contain": ["<script>", "onclick", "<iframe>"]
+        },
+        {
+          "id": "SAN-002",
+          "description": "script tag completely removed",
+          "input": "<div><script>alert('xss')</script>Safe text</div>",
+          "must_contain": ["Safe text"],
+          "must_not_contain": ["<script>", "alert(", "xss"]
+        },
+        {
+          "id": "SAN-003",
+          "description": "Inline event handlers stripped from allowed tag",
+          "input": "<a href='#' onclick='steal()' onmouseover='bad()'>click</a>",
+          "must_contain": ["click"],
+          "must_not_contain": ["onclick", "onmouseover", "steal", "bad"]
+        },
+        {
+          "id": "SAN-004",
+          "description": "javascript: URL in href blocked",
+          "input": "<a href='javascript:void(document.cookie)'>link</a>",
+          "must_contain": ["link"],
+          "must_not_contain": ["javascript:", "void("]
+        },
+        {
+          "id": "SAN-005",
+          "description": "data: URL in href blocked",
+          "input": "<a href='data:text/html,<script>xss</script>'>trap</a>",
+          "must_contain": ["trap"],
+          "must_not_contain": ["data:text/html", "xss"]
+        },
+        {
+          "id": "SAN-006",
+          "description": "iframe stripped completely",
+          "input": "<div><iframe src='https://evil.com'></iframe>content</div>",
+          "must_contain": ["content"],
+          "must_not_contain": ["<iframe", "evil.com"]
+        },
+        {
+          "id": "SAN-007",
+          "description": "object and embed stripped",
+          "input": "<object data='x.swf'></object><embed src='y.swf'>text",
+          "must_contain": ["text"],
+          "must_not_contain": ["<object", "<embed"]
+        },
+        {
+          "id": "SAN-008",
+          "description": "style blocks stripped unless nonce re-injected by renderer",
+          "input": "<style>body{color:red}</style><p>ok</p>",
+          "must_contain": ["ok"],
+          "must_not_contain": ["color:red"]
+        },
+        {
+          "id": "SAN-009",
+          "description": "Disallowed tag unwrapped but text content preserved",
+          "input": "<marquee><b>scrolling text</b></marquee>",
+          "must_contain": ["scrolling text", "<b>"],
+          "must_not_contain": ["<marquee>"]
+        },
+        {
+          "id": "SAN-010",
+          "description": "Attribute allowlist enforced on <a>: only href and title survive",
+          "input": "<a href='#' title='ok' data-track='yes' style='color:red' class='btn'>link</a>",
+          "must_contain": ["href='#'", "title='ok'", "class='btn'"],
+          "must_not_contain": ["data-track", "style=", "color:red"]
+        },
+        {
+          "id": "SAN-011",
+          "description": "CSP header contains nonce and blocks unsafe-inline",
+          "input": "<p>safe</p>",
+          "check_csp": true,
+          "csp_must_contain": ["script-src 'none'", "frame-ancestors 'none'", "nonce-"],
+          "csp_must_not_contain": ["unsafe-inline", "unsafe-eval"]
+        },
+        {
+          "id": "SAN-012",
+          "description": "Security headers present on response",
+          "input": "<p>test</p>",
+          "check_headers": true,
+          "required_headers": {
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "DENY"
+          }
+        },
+        {
+          "id": "SAN-013",
+          "description": "Nested XSS via attribute injection blocked",
+          "input": "<img src='x' onerror='fetch(document.cookie)' alt='img'>",
+          "must_contain": ["alt='img'"],
+          "must_not_contain": ["onerror", "fetch("]
+        },
+        {
+          "id": "SAN-014",
+          "description": "vbscript: URL in href blocked",
+          "input": "<a href='vbscript:MsgBox(1)'>link</a>",
+          "must_contain": ["link"],
+          "must_not_contain": ["vbscript:"]
+        }
+      ]
+    }
+  ],
+  "pytest_harness": {
+    "file": "tests/test_renderer.py",
+    "snippet": "See README in tests/ for setup. Requires: pip install pytest jsonschema beautifulsoup4 flask"
+  }
+}
