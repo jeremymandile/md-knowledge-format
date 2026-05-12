@@ -1,0 +1,122 @@
+{
+  "meta": {
+    "description": "XSS test vectors for csp_sanitizer.py",
+    "source": "OWASP XSS Cheat Sheet + agent-specific vectors",
+    "updated": "2026-05-12",
+    "total_vectors": 14
+  },
+  "vectors": [
+    {
+      "id": "XSS-001",
+      "name": "Basic script tag",
+      "payload": "<script>alert(1)</script>",
+      "should_strip": true,
+      "category": "script_injection",
+      "description": "Classic XSS vector"
+    },
+    {
+      "id": "XSS-002",
+      "name": "Event handler on img",
+      "payload": "<img src=x onerror=alert(1)>",
+      "should_strip": true,
+      "category": "event_handler",
+      "description": "Event handler injection via broken image"
+    },
+    {
+      "id": "XSS-003",
+      "name": "javascript: URL in href",
+      "payload": "<a href='javascript:alert(1)'>click</a>",
+      "should_strip": true,
+      "category": "protocol_xss",
+      "description": "Protocol-based XSS via href"
+    },
+    {
+      "id": "XSS-004",
+      "name": "Data URL in iframe",
+      "payload": "<iframe src='data:text/html,<script>alert(1)<\/script>'>",
+      "should_strip": true,
+      "category": "data_uri",
+      "description": "Data URI XSS via iframe"
+    },
+    {
+      "id": "XSS-005",
+      "name": "SVG with script",
+      "payload": "<svg><script>alert(1)</script></svg>",
+      "should_strip": true,
+      "category": "svg_namespace",
+      "description": "SVG namespace XSS bypass"
+    },
+    {
+      "id": "XSS-006",
+      "name": "CSS injection via style attribute",
+      "payload": "<div style='background:url(javascript:alert(1))'>",
+      "should_strip": true,
+      "category": "css_injection",
+      "description": "CSS expression or URL-based XSS"
+    },
+    {
+      "id": "XSS-007",
+      "name": "onClick event handler",
+      "payload": "<button onclick='alert(1)'>click</button>",
+      "should_strip": true,
+      "category": "event_handler",
+      "description": "Inline event handler on button"
+    },
+    {
+      "id": "XSS-008",
+      "name": "Allowed tag with safe attrs — should pass",
+      "payload": "<a href='https://example.com' title='safe'>link</a>",
+      "should_strip": false,
+      "category": "benign",
+      "description": "Safe anchor tag — must NOT be stripped"
+    },
+    {
+      "id": "XSS-009",
+      "name": "Allowed tag with unsafe attr",
+      "payload": "<a href='#' onclick='bad()'>click</a>",
+      "should_strip_attr": "onclick",
+      "category": "mixed",
+      "description": "Safe tag with unsafe attribute"
+    },
+    {
+      "id": "XSS-010",
+      "name": "Script nested in allowed tag",
+      "payload": "<div><script>alert(1)</script></div>",
+      "should_strip": true,
+      "category": "script_injection",
+      "description": "Script nested inside allowed container"
+    },
+    {
+      "id": "XSS-011",
+      "name": "Template literal injection",
+      "payload": "<div id=\"x\" data-value=\"`${alert(1)}`\">test</div>",
+      "should_strip_attr": "data-value",
+      "category": "data_attr",
+      "description": "Template literal in data attribute"
+    },
+    {
+      "id": "XSS-012",
+      "name": "Meta refresh redirect",
+      "payload": "<meta http-equiv='refresh' content='0;url=javascript:alert(1)'>",
+      "should_strip": true,
+      "category": "meta_redirect",
+      "description": "Meta tag redirect to JavaScript URL"
+    },
+    {
+      "id": "XSS-013",
+      "name": "Object with data URL",
+      "payload": "<object data='data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=='>",
+      "should_strip": true,
+      "category": "object_embed",
+      "description": "Object tag with base64-encoded XSS"
+    },
+    {
+      "id": "XSS-014",
+      "name": "Form action to javascript",
+      "payload": "<form action='javascript:alert(1)'><input type=submit></form>",
+      "should_strip": true,
+      "category": "form_action",
+      "description": "Form action pointing to JavaScript"
+    }
+  ]
+}
