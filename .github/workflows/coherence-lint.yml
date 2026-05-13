@@ -1,0 +1,57 @@
+name: Constraint Coherence Lint
+
+on:
+  push:
+    paths:
+      - 'docs/constraint-system/**'
+  pull_request:
+    paths:
+      - 'docs/constraint-system/**'
+
+jobs:
+  coherence-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run coherence analyzer
+        run: |
+          python -m analyzer.python.main \
+            --soul docs/constraint-system/lesson-soul-md.md \
+            --lessons docs/constraint-system/LESSONS.md \
+            --threshold 0.85 \
+            --json > coherence_report.json
+
+      - name: Check threshold
+        run: |
+          rho=$(python -c "import json; print(json.load(open('coherence_report.json'))['rho'])")
+          echo "rho_t=$rho"
+          python -c "
+          import json, sys
+          r = json.load(open('coherence_report.json'))
+          print(f'rho_t={r[\"rho\"]:.3f}  nodes={r[\"nodes_count\"]}')
+          if not r['pass']:
+              d = r['details']
+              print(f'  contradictions={d[\"contradictions_found\"]:.2f}')
+              print(f'  duplicates={d[\"duplicates_found\"]:.2f}')
+              print(f'  leakage={d[\"leakage_count\"]:.2f}')
+              for w in r.get('warnings', []):
+                  print(f'  WARNING: {w}')
+              print('FAIL: coherence below threshold — merge blocked')
+              sys.exit(1)
+          else:
+              print('PASS: coherence acceptable')
+          "
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coherence-report
+          path: coherence_report.json
