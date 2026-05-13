@@ -1,0 +1,57 @@
+# examples/agent_demo/config/pipeline.yaml
+#
+# Pipeline configuration for the KnowledgeAwareAgent demo.
+# Controls the three-stage processing pipeline:
+#   1. pre_check  — grep LESSONS.md for relevant warnings
+#   2. execute    — run the tool or generate the response
+#   3. post_learn — write a new LESSON.md entry if something notable happened
+
+pipeline:
+  version: 1
+  name: knowledge-aware-agent
+
+  stages:
+    pre_check:
+      enabled: true
+      description: >
+        Before executing any tool call, search LESSONS.md for lessons
+        tagged with concepts relevant to the current task. This prevents
+        repeating known mistakes.
+      config:
+        max_lessons_to_surface: 3
+        tag_match_strategy: exact   # exact | fuzzy | semantic
+        token_budget_threshold: 500  # use grep mode below this budget
+        grep_timeout_ms: 100
+
+    execute:
+      enabled: true
+      description: >
+        Execute the primary task. If pre_check surfaced lessons,
+        they are prepended to the system prompt as soft constraints.
+      config:
+        inject_lessons_as: system_context  # system_context | user_message | none
+        lesson_prefix: "[INSTITUTIONAL MEMORY]"
+
+    post_learn:
+      enabled: true
+      description: >
+        After execution, evaluate whether the session produced a
+        lesson worth recording. Write to LESSONS.md if confidence > threshold.
+      config:
+        confidence_threshold: 0.8
+        auto_tag: true
+        require_human_review: false  # set true for production
+        max_lesson_length_chars: 2000
+
+# Knowledge base configuration
+knowledge:
+  lessons_file: tests/fixtures/sample_lessons.md  # relative to repo root
+  lesson_version: 1
+  allow_external_scripts: false  # MUST be false in production
+  encoding: utf-8
+
+# Logging
+logging:
+  level: INFO
+  format: "%(asctime)s [%(name)s] %(levelname)s: %(message)s"
+  include_lesson_ids: true
