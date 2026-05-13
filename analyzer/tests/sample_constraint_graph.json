@@ -1,0 +1,32 @@
+{
+  "nodes": [
+    {
+      "id": "node_0",
+      "text": "Do not output user PII.",
+      "class": "A",
+      "source_file": "policy.md",
+      "line": 1
+    },
+    {
+      "id": "node_1",
+      "text": "Output must be valid JSON.",
+      "class": "Bs",
+      "source_file": "LESSONS.md",
+      "line": 5
+    },
+    {
+      "id": "node_2",
+      "text": "Always validate input before tool call.",
+      "class": "Bp",
+      "source_file": "LESSONS.md",
+      "line": 10
+    },
+    {
+      "id": "node_3",
+      "text": "Be blunt and skip filler. Never open with 'Great question'.",
+      "class": "C",
+      "source_file": "SOUL.md",
+      "line": 3
+    }
+  ]
+}
